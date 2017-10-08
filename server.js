@@ -3,5 +3,7 @@ const autoDat = require('./auto-dat')
 const { createServer } = require('http')
 
 const port = process.env.PORT || 8080
-createServer(stack(autoDat)).listen(port)
-console.log('Server listening on http://localhost:' + port)
+const host = process.env.HOST || 'localhost'
+
+createServer(stack(autoDat(host))).listen(port)
+console.log(`Server listening on http://${host}${port === 80 ? '' : ':' + port}/`)

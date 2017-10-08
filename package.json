@@ -4,6 +4,7 @@
   "description": "",
   "main": "server.js",
   "dependencies": {
+    "bs58": "^4.0.1",
     "hyperdiscovery": "^6.0.4",
     "hyperdrive": "^9.9.1",
     "hyperdrive-http": "^4.2.0",
