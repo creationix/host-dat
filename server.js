@@ -1,3 +1,4 @@
+#!/usr/bin/env node
 const stack = require('stack')
 const autoDat = require('./auto-dat')
 const { createServer } = require('http')
