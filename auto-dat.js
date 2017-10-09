@@ -2,7 +2,7 @@ const hyperdrive = require('hyperdrive')
 const swarm = require('hyperdiscovery')
 const hyperdriveHttp = require('hyperdrive-http')
 const ram = require('random-access-memory')
-const bs58 = require('bs58')
+const { encode, decode } = require('base32')
 
 const CACHE_LIFETIME = 1000 * 60
 const CLEANUP_INTERVAL = 1000
@@ -17,7 +17,7 @@ function getSite (key, callback) {
     return callback(null, site)
   }
 
-  let archive = hyperdrive(name => ram(), bs58.decode(key), {
+  let archive = hyperdrive(name => ram(), decode(key), {
     sparse: true,
     sparseMetadata: true
   })
@@ -61,7 +61,7 @@ module.exports = function (domain) {
     if (requestDomain === domain) {
       let match = req.url.match(pathPattern)
       if (match) {
-        let key = bs58.encode(Buffer.from(match[1], 'hex'))
+        let key = encode(Buffer.from(match[1], 'hex'))
         res.writeHead(301, {
           Location: `http://${key}.${host}${match[2] || '/'}`
         })
