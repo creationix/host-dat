@@ -15,7 +15,7 @@ function datRoute (url, options) {
 
   let key = Buffer.from(hex, 'hex')
 
-  // Default to in-memory storage if none is given
+  // Default to storage in a hidden folder if not specified.
   if (!storage) storage = process.env.HOME + '/.dat-route/' + match[0]
 
   // Create a sparse hyperdrive instance.
