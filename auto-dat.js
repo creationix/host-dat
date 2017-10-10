@@ -17,19 +17,23 @@ function getSite (key, callback) {
     return callback(null, site)
   }
 
-  let archive = hyperdrive(name => ram(), decode(key), {
+  let archive = hyperdrive(name => ram(), Buffer.from(decode(key), 'binary'), {
     sparse: true,
     sparseMetadata: true
   })
   console.log(`${key} NEW`)
   archive.on('ready', () => {
     console.log(`${key} READY`)
-    let sw = swarm(archive)
+    let sw = swarm(archive, {live: true})
     let handler = hyperdriveHttp(archive)
-    let atime = Date.now()
-    site = sites[key] = { archive, handler, sw, key, atime }
-    callback(null, site)
+    archive.metadata.on('sync', () => {
+      console.log(`${key} METADAT-SYNC`)
+      let atime = Date.now()
+      site = sites[key] = { archive, handler, sw, key, atime }
+      callback(null, site)
+    })
   })
+  archive.on('error', callback)
 }
 
 // Cleanup sites that have been expired
@@ -46,7 +50,7 @@ setInterval(() => {
 }, CLEANUP_INTERVAL)
 
 module.exports = function (domain) {
-  let domainPattern = new RegExp(`^([1-9A-HJ-NP-Za-km-z]{43,44}).${domain}$`)
+  let domainPattern = new RegExp(`^([0-9a-z]{52}).${domain}$`)
   let pathPattern = new RegExp('^/(?:dat://)?([0-9a-f]{64})(/.*)?$')
 
   return function (req, res, next) {
