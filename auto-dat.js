@@ -5,8 +5,8 @@ const ram = require('random-access-memory')
 const { encode, decode } = require('base32')
 const { E, M } = require('promisey')
 
-const CACHE_LIFETIME = 1000 * 10
-const CLEANUP_INTERVAL = 1000
+const CACHE_LIFETIME = 1000 * 60 * 10
+const CLEANUP_INTERVAL = 1000 * 60
 
 let sites = {}
 

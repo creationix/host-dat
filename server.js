@@ -1,10 +1,38 @@
 #!/usr/bin/env node
-const stack = require('stack')
+const express = require('express')
+const morgan = require('morgan')
 const autoDat = require('./auto-dat')
-const { createServer } = require('http')
 
 const port = process.env.PORT || 8080
 const host = process.env.HOST || 'localhost'
 
-createServer(stack(autoDat(host))).listen(port)
-console.log(`Server listening on http://${host}${port === 80 ? '' : ':' + port}/`)
+let app = express()
+
+app.use(morgan('dev'))
+
+app.use(autoDat(host))
+
+app.get('/', (req, res) => {
+  res.send(`
+    <!doctype html>
+    <html>
+      <head>
+        <title>Dat Gateway</title>
+      </head>
+      <body>
+        <h1>Dat Gateway</h1>
+        <script>
+          navigator.registerProtocolHandler(
+            'dat',
+            'http://${host}:${port}/%s',
+            'Date Gateway Handler'
+          )
+        </script>
+      </body>
+    </html>
+  `)
+})
+
+app.listen({port, host}, function () {
+  console.log(`Server listening on http://${host}${port === 80 ? '' : ':' + port}/`)
+})
