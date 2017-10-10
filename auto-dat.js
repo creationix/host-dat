@@ -3,37 +3,36 @@ const swarm = require('hyperdiscovery')
 const hyperdriveHttp = require('hyperdrive-http')
 const ram = require('random-access-memory')
 const { encode, decode } = require('base32')
+const { E, M } = require('promisey')
 
-const CACHE_LIFETIME = 1000 * 60
+const CACHE_LIFETIME = 1000 * 10
 const CLEANUP_INTERVAL = 1000
 
 let sites = {}
 
-function getSite (key, callback) {
-  console.log('getSite', {key})
-  let site = sites[key]
-  if (site) {
-    site.atime = Date.now()
-    return callback(null, site)
-  }
+let ramStorage = name => ram()
 
-  let archive = hyperdrive(name => ram(), Buffer.from(decode(key), 'binary'), {
-    sparse: true,
-    sparseMetadata: true
-  })
-  console.log(`${key} NEW`)
-  archive.on('ready', () => {
-    console.log(`${key} READY`)
-    let sw = swarm(archive, {live: true})
-    let handler = hyperdriveHttp(archive)
-    archive.metadata.on('sync', () => {
-      console.log(`${key} METADAT-SYNC`)
-      let atime = Date.now()
-      site = sites[key] = { archive, handler, sw, key, atime }
-      callback(null, site)
+async function getSite (key) {
+  let site = sites[key]
+  if (!site) {
+    let binKey = Buffer.from(decode(key), 'binary')
+    let archive = hyperdrive(ramStorage, binKey, {
+      sparse: true,
+      sparseMetadata: true
     })
-  })
-  archive.on('error', callback)
+    await E(archive, 'ready')
+    let sw = swarm(archive, { live: true })
+    await M(archive.metadata, 'update')
+    let handler = hyperdriveHttp(archive, {
+      exposeHeaders: true,
+      live: true,
+      footer: `<a href="dat://${binKey.toString('hex')}/">Also available over DAT protocol</a>`
+    })
+    site = sites[key] = { archive, handler, sw, key }
+    console.log(key, 'NEW')
+  }
+  site.atime = Date.now()
+  return site
 }
 
 // Cleanup sites that have been expired
@@ -45,7 +44,7 @@ setInterval(() => {
     delete sites[key]
     site.sw.close()
     site.archive.close()
-    console.log(`${key} EXPIRE`)
+    console.log(key, 'OLD')
   }
 }, CLEANUP_INTERVAL)
 
@@ -77,9 +76,8 @@ module.exports = function (domain) {
     // If the request is in base58 mode, serve the site
     let match = requestDomain.match(domainPattern)
     if (!match) return next()
-    getSite(match[1], (err, site) => {
-      if (err) return next(err)
+    getSite(match[1]).then(site => {
       site.handler(req, res)
-    })
+    }).catch(next)
   }
 }
