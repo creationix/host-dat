@@ -21,10 +21,16 @@ app.get('/', (req, res) => {
       </head>
       <body>
         <h1>Dat Gateway</h1>
+        <form>
+          <label>Enter Dat URL or hex
+            <input type="url" name="dat">
+          </label>
+          <input type="submit">
+        </form>
         <script>
           navigator.registerProtocolHandler(
             'dat',
-            'http://${host}:${port}/%s',
+            'http://${host}:${port}/?dat=%s',
             'Date Gateway Handler'
           )
         </script>

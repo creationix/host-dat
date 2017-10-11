@@ -4,6 +4,7 @@ const hyperdriveHttp = require('hyperdrive-http')
 const ram = require('random-access-memory')
 const { encode, decode } = require('base32')
 const { E, M } = require('promisey')
+const { parse } = require('url')
 
 const CACHE_LIFETIME = 1000 * 60 * 10
 const CLEANUP_INTERVAL = 1000 * 60
@@ -50,7 +51,7 @@ setInterval(() => {
 
 module.exports = function (domain) {
   let domainPattern = new RegExp(`^([0-9a-z]{52}).${domain}$`)
-  let pathPattern = new RegExp('^/(?:dat://)?([0-9a-f]{64})(/.*)?$')
+  let pathPattern = new RegExp('(?:dat://)?([0-9a-f]{64})(/.*)?$')
 
   return function (req, res, next) {
     let host = req.headers.host
@@ -62,7 +63,12 @@ module.exports = function (domain) {
     // If they put in a raw dat url at the main domain, redirect to subdomain
     // using base58 prefix.
     if (requestDomain === domain) {
-      let match = req.url.match(pathPattern)
+      let { pathname, query } = parse(req.url, true)
+      let match
+      if (query && query.dat) {
+        match = query.dat.match(pathPattern)
+      }
+      if (!match) match = pathname.match(pathPattern)
       if (match) {
         let key = encode(Buffer.from(match[1], 'hex'))
         res.writeHead(301, {
